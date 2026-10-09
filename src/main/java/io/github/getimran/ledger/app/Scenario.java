@@ -1,4 +1,8 @@
-package ledger;
+package io.github.getimran.ledger.app;
+
+import io.github.getimran.ledger.model.Currency;
+import io.github.getimran.ledger.model.Event;
+import io.github.getimran.ledger.service.LedgerService;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -9,8 +13,8 @@ public final class Scenario {
     private Scenario() {
     }
 
-    public static Ledger openAccounts() {
-        Ledger ledger = new Ledger();
+    public static LedgerService openAccounts() {
+        LedgerService ledger = new LedgerService();
         ledger.openAccount("ACC-001", Currency.AED, new BigDecimal("0.00"));
         ledger.openAccount("ACC-002", Currency.BHD, new BigDecimal("0.000"));
         return ledger;

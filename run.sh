@@ -14,4 +14,4 @@ fi
 JAVA="${JAVA_HOME:+$JAVA_HOME/bin/}java"
 
 mvn -q compile
-"$JAVA" -cp target/classes ledger.Replay
+"$JAVA" -cp target/classes io.github.getimran.ledger.app.Replay

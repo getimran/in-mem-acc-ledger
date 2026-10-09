@@ -73,21 +73,37 @@ Errors:
 
 ## Layout
 
+Base package: `io.github.getimran.ledger`
+
 ```
-src/main/java/ledger/
-  Ledger.java        engine: apply events, close days, fees, interest, queries
-  Event.java         sealed event types (credit, debit, authorization, settlement, reversal, instalment credit)
-  LedgerEntry.java   immutable ledger line
-  AuthRecord.java    immutable authorization log line
-  Accrual.java       immutable interest journal line
-  Currency.java      AED (2 dp), BHD (3 dp), rounding
-  DayReport.java     per-day snapshot
-  Scenario.java      the brief's accounts and events
-  Replay.java        replays a stream and prints reports
-src/test/java/ledger/
-  ScenarioTest.java  one test per acceptance criterion
-  LedgerTest.java    rules in isolation
-  DesignGapTest.java the deliberately failing test
+src/main/java/io/github/getimran/ledger/
+  app/
+    Replay.java           entry point; replays a stream and prints the day reports
+    Scenario.java         the brief's accounts and events
+  config/
+    LedgerConfig.java     business constants: overdraft fee, daily rate, window days
+  dto/
+    DayReport.java        per-day snapshot returned by a day close
+    Outcome.java          result of applying one event
+    AccountSnapshot.java  balances of one account at a day close
+    FeeAssessment.java    one overdraft fee booked at a close
+    LedgerError.java      a rejected event or end-of-day problem
+  model/
+    Account.java          account id and currency
+    Currency.java         AED (2 dp), BHD (3 dp), rounding
+    Event.java            sealed event types (credit, debit, authorization, settlement, reversal, instalment credit)
+    LedgerEntry.java      immutable ledger line
+    AuthRecord.java       immutable authorization log line
+    Accrual.java          immutable interest journal line
+  service/
+    LedgerService.java    engine: apply events, close days, fees, interest, queries
+  util/
+    AmountSplitter.java   splits an amount into parts that sum exactly
+src/test/java/io/github/getimran/ledger/
+  app/ScenarioTest.java          one test per acceptance criterion
+  app/DesignGapTest.java         the deliberately failing test
+  service/LedgerServiceTest.java rules in isolation
+  util/AmountSplitterTest.java   exact-split property
 ```
 
 ## Other documents

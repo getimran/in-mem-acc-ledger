@@ -1,7 +1,16 @@
-package ledger;
+package io.github.getimran.ledger.app;
 
-import ledger.DayReport.FeeAssessment;
-import ledger.LedgerEntry.EntryType;
+import io.github.getimran.ledger.config.LedgerConfig;
+import io.github.getimran.ledger.dto.DayReport;
+import io.github.getimran.ledger.dto.FeeAssessment;
+import io.github.getimran.ledger.dto.Outcome;
+import io.github.getimran.ledger.model.Accrual;
+import io.github.getimran.ledger.model.AuthRecord;
+import io.github.getimran.ledger.model.Event;
+import io.github.getimran.ledger.model.LedgerEntry;
+import io.github.getimran.ledger.model.LedgerEntry.EntryType;
+import io.github.getimran.ledger.service.LedgerService;
+
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -30,10 +39,10 @@ class ScenarioTest {
     }
 
     /** Applies and closes every day before {@code day}, then applies {@code day}'s events without closing it. */
-    private static Ledger openThrough(int day) {
-        Ledger ledger = Scenario.openAccounts();
+    private static LedgerService openThrough(int day) {
+        LedgerService ledger = Scenario.openAccounts();
         List<Event> events = Replay.inBookingOrder(Scenario.events());
-        for (int d = Ledger.FIRST_DAY; d <= day; d++) {
+        for (int d = LedgerConfig.FIRST_DAY; d <= day; d++) {
             for (Event e : events) {
                 if (e.bookedDay() == d) {
                     ledger.apply(e);
@@ -46,20 +55,20 @@ class ScenarioTest {
         return ledger;
     }
 
-    private static Ledger fullReplay(List<DayReport> reportsOut) {
-        Ledger ledger = Scenario.openAccounts();
+    private static LedgerService fullReplay(List<DayReport> reportsOut) {
+        LedgerService ledger = Scenario.openAccounts();
         reportsOut.addAll(Replay.run(ledger, Scenario.events(), null));
         return ledger;
     }
 
-    private static List<LedgerEntry> entriesOf(Ledger ledger, String account, EntryType type) {
+    private static List<LedgerEntry> entriesOf(LedgerService ledger, String account, EntryType type) {
         return ledger.entries().stream().filter(x -> x.accountId().equals(account) && x.type() == type).toList();
     }
 
     // AC1 (accepted): Day 2 closing ledger balance, evaluated at end of Day 5 before any fee, is AED -370.00.
     @Test
     void day2BalanceSeenOnDay5BeforeFeesIsMinus370() {
-        Ledger ledger = openThrough(5);
+        LedgerService ledger = openThrough(5);
         assertTrue(entriesOf(ledger, AED_ACC, EntryType.OVERDRAFT_FEE).isEmpty(), "no fee booked yet");
         assertEquals(aed("-370.00"), ledger.ledgerBalance(AED_ACC, 2));
     }
@@ -68,7 +77,7 @@ class ScenarioTest {
     @Test
     void e7CausesThreeBackdatedOverdraftFeesNotOne() {
         List<DayReport> reports = new ArrayList<>();
-        Ledger ledger = fullReplay(reports);
+        LedgerService ledger = fullReplay(reports);
 
         List<FeeAssessment> day5Fees = reports.get(4).fees();
         assertEquals(List.of(2, 4, 5), day5Fees.stream().map(FeeAssessment::forDay).toList());
@@ -90,9 +99,9 @@ class ScenarioTest {
     @Test
     void authASettlementOnDay4IsAccepted() {
         List<DayReport> reports = new ArrayList<>();
-        Ledger ledger = fullReplay(reports);
+        LedgerService ledger = fullReplay(reports);
 
-        DayReport.Outcome e5 = reports.get(3).outcomes().get(0);
+        Outcome e5 = reports.get(3).outcomes().get(0);
         assertEquals("E5", e5.eventId());
         assertTrue(e5.accepted());
         assertEquals(aed("465.00"), reports.get(3).accounts().get(0).closing());
@@ -106,9 +115,9 @@ class ScenarioTest {
     @Test
     void settlementForUnknownAuthorizationIsRejectedAndMovesNoFunds() {
         List<DayReport> reports = new ArrayList<>();
-        Ledger ledger = fullReplay(reports);
+        LedgerService ledger = fullReplay(reports);
 
-        DayReport.Outcome e6 = reports.get(3).outcomes().get(1);
+        Outcome e6 = reports.get(3).outcomes().get(1);
         assertEquals("E6", e6.eventId());
         assertFalse(e6.accepted());
         assertTrue(ledger.entries().stream().noneMatch(x -> x.sourceEventId().equals("E6")));
@@ -119,7 +128,7 @@ class ScenarioTest {
     // AC5 (accepted as a rule, but its premise is false): Auth-B is declined, so it never holds anything.
     @Test
     void authBIsDeclinedSoItsHoldNeverApplies() {
-        Ledger ledger = fullReplay(new ArrayList<>());
+        LedgerService ledger = fullReplay(new ArrayList<>());
         AuthRecord authB = ledger.authStates().get(1);
         assertEquals("Auth-B", authB.authId());
         assertEquals(AuthRecord.Status.DECLINED, authB.status());
@@ -130,7 +139,7 @@ class ScenarioTest {
     @Test
     void reversalOfE7LeavesFeesInPlace() {
         List<DayReport> reports = new ArrayList<>();
-        Ledger ledger = fullReplay(reports);
+        LedgerService ledger = fullReplay(reports);
 
         BigDecimal day6BeforeInterest = ledger.ledgerBalance(AED_ACC, 6, x -> x.type() != EntryType.INTEREST);
         assertEquals(aed("390.00"), day6BeforeInterest, "465.00 pre-E7 balance less three 25.00 fees");
@@ -144,7 +153,7 @@ class ScenarioTest {
     // AC7 (refused): three instalments of 3.334 would credit 10.002. They are 3.333 + 3.333 + 3.334.
     @Test
     void bhdInstalmentsSumExactlyToTen() {
-        Ledger ledger = fullReplay(new ArrayList<>());
+        LedgerService ledger = fullReplay(new ArrayList<>());
         List<BigDecimal> parts = entriesOf(ledger, BHD_ACC, EntryType.CREDIT).stream().map(LedgerEntry::amount).toList();
         assertEquals(List.of(bhd("3.333"), bhd("3.333"), bhd("3.334")), parts);
         assertEquals(bhd("10.000"), parts.stream().reduce(BigDecimal.ZERO, BigDecimal::add));
@@ -153,7 +162,7 @@ class ScenarioTest {
     // AC8 (refused): nothing is discarded. The capitalized total equals the sum of rounded daily accruals.
     @Test
     void capitalizedInterestEqualsSumOfRoundedDailyAccruals() {
-        Ledger ledger = fullReplay(new ArrayList<>());
+        LedgerService ledger = fullReplay(new ArrayList<>());
         for (String account : List.of(AED_ACC, BHD_ACC)) {
             BigDecimal journal = ledger.accruals().stream().filter(a -> a.accountId().equals(account))
                     .map(Accrual::amount).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -171,10 +180,10 @@ class ScenarioTest {
     // Append-only: each day's ledger is a prefix of the next day's, entry for entry.
     @Test
     void ledgerOnlyEverGrows() {
-        Ledger ledger = Scenario.openAccounts();
+        LedgerService ledger = Scenario.openAccounts();
         List<Event> events = Replay.inBookingOrder(Scenario.events());
         List<LedgerEntry> previous = List.of();
-        for (int d = Ledger.FIRST_DAY; d <= Ledger.LAST_DAY; d++) {
+        for (int d = LedgerConfig.FIRST_DAY; d <= LedgerConfig.LAST_DAY; d++) {
             for (Event e : events) {
                 if (e.bookedDay() == d) {
                     ledger.apply(e);

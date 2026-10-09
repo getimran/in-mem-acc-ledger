@@ -1,4 +1,4 @@
-package ledger;
+package io.github.getimran.ledger.model;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

@@ -1,6 +1,9 @@
-package ledger;
+package io.github.getimran.ledger.app;
 
-import ledger.LedgerEntry.EntryType;
+import io.github.getimran.ledger.model.LedgerEntry;
+import io.github.getimran.ledger.model.LedgerEntry.EntryType;
+import io.github.getimran.ledger.service.LedgerService;
+
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -44,7 +47,7 @@ class DesignGapTest {
      */
     @Test
     void noFeeStandsOnADayThatEndsNonNegative() {
-        Ledger ledger = Scenario.openAccounts();
+        LedgerService ledger = Scenario.openAccounts();
         Replay.run(ledger, Scenario.events(), null);
 
         List<Integer> unjustifiedFeeDays = ledger.entries().stream()

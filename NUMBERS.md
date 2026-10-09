@@ -4,14 +4,14 @@ This lists every constant in the code, where it lives, and why it has that value
 
 ## Constants
 
-### `Ledger.OVERDRAFT_FEE` = AED 25.00
+### `LedgerConfig.OVERDRAFT_FEE` = AED 25.00
 
 - **Source:** the brief.
 - **Why 25.00 and not 12.50:** the brief fixes the amount. It is charged in full, not pro-rated, and at most once per account per value day.
 - **Scale:** it is stored as `25.00` (scale 2) so it adds to AED balances without rescaling.
 - **Defined for AED only.** The brief gives no BHD fee and no FX rate. If a BHD account goes negative, the day close logs an error and charges nothing (AMBIGUITIES §20). Converting 25 AED to roughly 2.5 BHD would mean inventing an exchange rate.
 
-### `Ledger.DAILY_INTEREST_RATE` = `0.0004`
+### `LedgerConfig.DAILY_INTEREST_RATE` = `0.0004`
 
 - **Source:** the brief says 0.04% per day, and 0.04 / 100 = **0.0004**.
 - **This conversion is where errors creep in:**
@@ -30,14 +30,14 @@ This lists every constant in the code, where it lives, and why it has that value
 
 ### `Currency.ROUNDING` = `HALF_EVEN`
 
-- **Used only for computed amounts,** which in this ledger means daily interest. Input amounts are never rounded: an amount finer than the currency's scale is rejected (`LedgerTest.amountsFinerThanCurrencyPrecisionAreRejectedNotRounded`). Silently rounding money someone sent you is a bug, not a policy.
+- **Used only for computed amounts,** which in this ledger means daily interest. Input amounts are never rounded: an amount finer than the currency's scale is rejected (`LedgerServiceTest.amountsFinerThanCurrencyPrecisionAreRejectedNotRounded`). Silently rounding money someone sent you is a bug, not a policy.
 - **Why HALF_EVEN and not HALF_UP:**
   - HALF_UP rounds every exact half upward, so over many accruals it systematically overpays interest.
   - HALF_EVEN rounds halves to the even digit, so the bias averages to zero.
 - **When it matters:** only on exact halves. Example: 1.25 × 0.0004 = 0.0005 becomes 0.00 under HALF_EVEN and 0.01 under HALF_UP (`interestRoundsHalfEvenPerDay`).
 - **Does it change this scenario?** No. None of the scenario's daily products lands on an exact half: 0.10, 0.26, 0.186, 0.004 and so on. The choice is about the rule, not about tuning the result.
 
-### Instalment split: `RoundingMode.DOWN`, remainder on the last part
+### Instalment split (`AmountSplitter`): `RoundingMode.DOWN`, remainder on the last part
 
 - **Method:** each part is `total / n` truncated to the currency's scale. The last part is `total − (n−1) × share`.
 - **E10:** 10.000 / 3 = 3.333… truncates to 3.333. The parts are **3.333, 3.333, 3.334**, which sum to exactly 10.000.
@@ -49,9 +49,9 @@ This lists every constant in the code, where it lives, and why it has that value
 ### `Event.InstalmentCredit.instalments` = 3
 
 - **Source:** the brief ("three equal instalments").
-- It is a field on the event, not a constant, so the split logic is tested for n = 1..9 (`splitAlwaysSumsToTotal`).
+- It is a field on the event, not a constant, so the split logic is tested for n = 1..9 (`AmountSplitterTest.splitAlwaysSumsToTotal`).
 
-### `Ledger.FIRST_DAY` = 1 and `Ledger.LAST_DAY` = 6
+### `LedgerConfig.FIRST_DAY` = 1 and `LedgerConfig.LAST_DAY` = 6
 
 - **Source:** the brief ("Day 1 through Day 6").
 - `LAST_DAY` is also the capitalization day. The brief says "end of Day 6", not end of window + 1, and not the first day of the next period.

@@ -1,13 +1,20 @@
-package ledger;
+package io.github.getimran.ledger.service;
 
-import ledger.DayReport.AccountSnapshot;
-import ledger.DayReport.FeeAssessment;
-import ledger.DayReport.LedgerError;
-import ledger.DayReport.Outcome;
-import ledger.LedgerEntry.EntryType;
+import io.github.getimran.ledger.dto.AccountSnapshot;
+import io.github.getimran.ledger.dto.DayReport;
+import io.github.getimran.ledger.dto.FeeAssessment;
+import io.github.getimran.ledger.dto.LedgerError;
+import io.github.getimran.ledger.dto.Outcome;
+import io.github.getimran.ledger.model.Account;
+import io.github.getimran.ledger.model.Accrual;
+import io.github.getimran.ledger.model.AuthRecord;
+import io.github.getimran.ledger.model.Currency;
+import io.github.getimran.ledger.model.Event;
+import io.github.getimran.ledger.model.LedgerEntry;
+import io.github.getimran.ledger.model.LedgerEntry.EntryType;
+import io.github.getimran.ledger.util.AmountSplitter;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -17,6 +24,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import static io.github.getimran.ledger.config.LedgerConfig.DAILY_INTEREST_RATE;
+import static io.github.getimran.ledger.config.LedgerConfig.FIRST_DAY;
+import static io.github.getimran.ledger.config.LedgerConfig.LAST_DAY;
+import static io.github.getimran.ledger.config.LedgerConfig.OVERDRAFT_FEE;
+
 /**
  * In-memory, append-only account ledger. Events are applied one booking day at a time; closing a
  * day runs overdraft fees and interest accrual, and on the last day capitalizes interest.
@@ -25,16 +37,8 @@ import java.util.function.Predicate;
  * errors are only appended. Backdated events are handled by re-evaluating every value day up to
  * today at each close and appending what is missing.
  */
-public final class Ledger {
+public final class LedgerService {
 
-    /** 0.04% per day, as a fraction. */
-    public static final BigDecimal DAILY_INTEREST_RATE = new BigDecimal("0.0004");
-
-    /** Overdraft fee per currency. The brief only defines AED. */
-    public static final Map<Currency, BigDecimal> OVERDRAFT_FEE = Map.of(Currency.AED, new BigDecimal("25.00"));
-
-    public static final int FIRST_DAY = 1;
-    public static final int LAST_DAY = 6;
 
     private final Map<String, Account> accounts = new LinkedHashMap<>();
     private final List<LedgerEntry> entries = new ArrayList<>();
@@ -200,7 +204,7 @@ public final class Ledger {
         if (e.instalments() < 1) {
             return reject(e, "instalment count must be at least 1");
         }
-        List<BigDecimal> parts = split(total, e.instalments(), account.currency());
+        List<BigDecimal> parts = AmountSplitter.split(total, e.instalments(), account.currency());
         if (parts.get(0).signum() == 0) {
             return reject(e, "total " + account.currency().format(total) + " is too small to split into "
                     + e.instalments() + " non-zero instalments");
@@ -215,16 +219,6 @@ public final class Ledger {
                 + backdatedNote(e));
     }
 
-    /**
-     * Splits {@code total} into {@code n} parts at the currency's precision that sum exactly to
-     * {@code total}. Every part is the truncated equal share; the last part also takes the remainder.
-     */
-    static List<BigDecimal> split(BigDecimal total, int n, Currency currency) {
-        BigDecimal share = total.divide(BigDecimal.valueOf(n), currency.scale(), RoundingMode.DOWN);
-        List<BigDecimal> parts = new ArrayList<>(Collections.nCopies(n - 1, share));
-        parts.add(total.subtract(share.multiply(BigDecimal.valueOf(n - 1))));
-        return parts;
-    }
 
     // ---------------------------------------------------------------- end of day
 

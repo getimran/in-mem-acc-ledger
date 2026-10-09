@@ -66,7 +66,7 @@ Test: `ScenarioTest.capitalizedInterestEqualsSumOfRoundedDailyAccruals`.
 
 ### AC5: not refused, but flagged
 
-The rule is correct: a hold reduces available balance and never touches the ledger (`LedgerTest.approvedHoldReducesAvailableButNotLedgerBalance`).
+The rule is correct: a hold reduces available balance and never touches the ledger (`LedgerServiceTest.approvedHoldReducesAvailableButNotLedgerBalance`).
 
 But Auth-B is not approved:
 - When E8 arrives, E7 has already been applied, so the ledger balance is −155.00.

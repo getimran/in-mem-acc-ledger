@@ -1,9 +1,17 @@
-package ledger;
+package io.github.getimran.ledger.app;
 
-import ledger.DayReport.AccountSnapshot;
-import ledger.DayReport.FeeAssessment;
-import ledger.DayReport.LedgerError;
-import ledger.DayReport.Outcome;
+import io.github.getimran.ledger.config.LedgerConfig;
+import io.github.getimran.ledger.dto.AccountSnapshot;
+import io.github.getimran.ledger.dto.DayReport;
+import io.github.getimran.ledger.dto.FeeAssessment;
+import io.github.getimran.ledger.dto.LedgerError;
+import io.github.getimran.ledger.dto.Outcome;
+import io.github.getimran.ledger.model.Accrual;
+import io.github.getimran.ledger.model.AuthRecord;
+import io.github.getimran.ledger.model.Currency;
+import io.github.getimran.ledger.model.Event;
+import io.github.getimran.ledger.model.LedgerEntry;
+import io.github.getimran.ledger.service.LedgerService;
 
 import java.io.PrintStream;
 import java.math.BigDecimal;
@@ -25,11 +33,11 @@ public final class Replay {
      * Groups events by booking day, keeping their listed order within a day, then applies and
      * closes Day 1 through the last day. Events listed out of booking-day order are reported.
      */
-    public static List<DayReport> run(Ledger ledger, List<Event> events, PrintStream out) {
+    public static List<DayReport> run(LedgerService ledger, List<Event> events, PrintStream out) {
         List<Event> ordered = inBookingOrder(events);
         reportReordering(events, out);
         List<DayReport> reports = new ArrayList<>();
-        for (int day = Ledger.FIRST_DAY; day <= Ledger.LAST_DAY; day++) {
+        for (int day = LedgerConfig.FIRST_DAY; day <= LedgerConfig.LAST_DAY; day++) {
             for (Event event : ordered) {
                 if (event.bookedDay() == day) {
                     ledger.apply(event);
@@ -66,7 +74,7 @@ public final class Replay {
         out.println();
     }
 
-    static void print(DayReport r, Ledger ledger, PrintStream out) {
+    static void print(DayReport r, LedgerService ledger, PrintStream out) {
         out.println("==================== DAY " + r.day() + " ====================");
 
         out.println("Events:");
