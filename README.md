@@ -73,10 +73,10 @@ Errors:
 
 ## Layout
 
-Base package: `io.github.getimran.ledger`
+Base package: `ae.mal.acc.ledger`
 
 ```
-src/main/java/io/github/getimran/ledger/
+src/main/java/ae/mal/acc/ledger/
   app/
     Replay.java           entry point; replays a stream and prints the day reports
     Scenario.java         the brief's accounts and events
@@ -99,7 +99,7 @@ src/main/java/io/github/getimran/ledger/
     LedgerService.java    engine: apply events, close days, fees, interest, queries
   util/
     AmountSplitter.java   splits an amount into parts that sum exactly
-src/test/java/io/github/getimran/ledger/
+src/test/java/ae/mal/acc/ledger/
   app/ScenarioTest.java          one test per acceptance criterion
   app/DesignGapTest.java         the deliberately failing test
   service/LedgerServiceTest.java rules in isolation
