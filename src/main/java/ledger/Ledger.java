@@ -45,6 +45,7 @@ public final class Ledger {
 
     private int openDay = FIRST_DAY;
     private final List<Outcome> todaysOutcomes = new ArrayList<>();
+    private int errorsAtDayOpen = 0;
 
     public void openAccount(String id, Currency currency, BigDecimal openingBalance) {
         if (accounts.containsKey(id)) {
@@ -110,7 +111,7 @@ public final class Ledger {
         // Plain debits are not balance-checked: the brief applies the available-balance rule to
         // authorizations only, and overdraft fees exist precisely because debits can overdraw.
         book(account.id(), EntryType.DEBIT, amount.negate(), e.valueDay(), e.bookedDay(), e.id(), null);
-        return accept(e, "posted -" + account.currency().format(amount) + backdatedNote(e));
+        return accept(e, "posted " + account.currency().format(amount.negate()) + backdatedNote(e));
     }
 
     private Outcome applyAuthorization(Event.Authorization e, Account account) {
@@ -232,7 +233,6 @@ public final class Ledger {
         if (day > LAST_DAY) {
             throw new IllegalStateException("Window closed after Day " + LAST_DAY);
         }
-        int errorsBefore = errors.size();
         List<FeeAssessment> fees = new ArrayList<>();
         List<Accrual> postings = new ArrayList<>();
         List<LedgerEntry> capitalizations = new ArrayList<>();
@@ -247,8 +247,9 @@ public final class Ledger {
             }
         }
         DayReport report = new DayReport(day, List.copyOf(todaysOutcomes), snapshots(day), fees, postings,
-                capitalizations, authStates(), List.copyOf(errors.subList(errorsBefore, errors.size())));
+                capitalizations, authStates(), List.copyOf(errors.subList(errorsAtDayOpen, errors.size())));
         todaysOutcomes.clear();
+        errorsAtDayOpen = errors.size();
         openDay++;
         return report;
     }
